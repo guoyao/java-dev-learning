@@ -1,4 +1,4 @@
-package me.guoyao;
+package me.guoyao.singleton;
 
 import java.lang.reflect.Constructor;
 
