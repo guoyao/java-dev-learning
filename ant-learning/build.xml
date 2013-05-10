@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<project name="ant-learning" default="execute">
+  <description>Compiles and runs a simple program</description>
+
+  <property name="build.dir" location="build"/>
+  <property name="build.classes.dir" location="${build.dir}/classes"/>
+  <property name="dist.dir" location="dist"/>
+  <property name="source.dir" location="src/main/java"/>
+
+  <target name="init">
+    <mkdir dir="${build.classes.dir}"/>
+    <mkdir dir="${dist.dir}"/>
+  </target>
+
+  <target name="compile" depends="init" description="Compiles the source code">
+    <javac srcdir="src/main/java" destdir="${build.classes.dir}"/>
+    <echo>compilation complete!</echo>
+  </target>
+
+  <target name="attachsource" depends="init" if="attach.source">
+    <copy todir="${build.classes.dir}">
+      <fileset dir="${source.dir}" includes="**/*.java"/>
+      <chainedmapper>
+        <identitymapper/>
+        <globmapper from="*.java" to="*.txt"/>
+      </chainedmapper>
+    </copy>
+
+    <uptodate property="zip.notRequired">
+      <srcfiles dir="${source.dir}" includes="**/*.java"/>
+      <mergemapper to="${dist.dir}/src.zip"/>
+    </uptodate>
+  </target>
+
+  <target name="archive" depends="compile,attachsource" description="Creates the JAR file">
+    <jar destfile="${dist.dir}/project.jar" basedir="${build.classes.dir}"/>
+  </target>
+
+  <target name="unarchive" depends="archive">
+    <unjar src="${dist.dir}/project.jar" dest="${dist.dir}/unarchive">
+      <patternset>
+        <include name="me/**/*"/>
+      </patternset>
+    </unjar>
+  </target>
+
+  <target name="clean" description="Removes the temporary directories used">
+    <delete includeemptydirs="true" failonerror="false">
+      <fileset dir="${build.dir}"/>
+      <fileset dir="${dist.dir}"/>
+    </delete>
+  </target>
+
+  <target name="execute" depends="compile" description="Runs the program">
+    <echo level="warning" message="running"/>
+    <java classname="Main" classpath="${build.classes.dir}">
+      <arg value="a"/>
+      <arg value="b"/>
+      <arg file="."/>
+    </java>
+  </target>
+
+  <condition property="os" value="windows" else="other">
+    <and>
+      <or>
+        <os family="win9x"/>
+        <os family="winnt"/>
+      </or>
+      <http url="http://baidu.com"/>
+    </and>
+  </condition>
+
+  <patternset id="image.files" includes="**/*.gif,**/*.jpg"/>
+  <patternset id="binary.files">
+    <exclude name="**/*.txt"/>
+    <exclude name="**/*.xml"/>
+    <patternset refid="image.files"/>
+  </patternset>
+
+  <tstamp>
+    <format property="buildtime" pattern="yyyy-MM-dd HH:mm:ss"/>
+  </tstamp>
+
+  <target name="echoall">
+    <!--<echoproperties format="xml" destfile="current-properties.xml"/>-->
+    <echo message="os = ${os}"/>
+    <echo message="buildtime = ${buildtime}"/>
+    <echo level="verbose">
+      binary.files = ${toString:binary.files}
+      os = ${os.name}
+      os.arch = ${os.arch}
+      os.version = ${os.version}
+    </echo>
+  </target>
+
+  <target name="probe_for_python">
+    <property environment="env"/>
+    <condition property="python.found">
+      <or>
+        <available file="python" filepath="${env.PATH}"/>
+        <available file="python.exe" filepath="${env.PATH}"/>
+      </or>
+    </condition>
+    <echo>python.found = ${python.found}</echo>
+  </target>
+</project>
