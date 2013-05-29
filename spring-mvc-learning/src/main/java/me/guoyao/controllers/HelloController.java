@@ -1,4 +1,4 @@
-package me.guoyao;
+package me.guoyao.controllers;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;

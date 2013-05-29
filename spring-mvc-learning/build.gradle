@@ -1,11 +1,24 @@
-apply plugin: "java"
+defaultTasks 'clean', 'build'
 
-defaultTasks 'build'
+apply plugin: 'java'
+apply plugin: 'eclipse'
+//apply plugin: 'maven'
+
+version = '1.0.0-SNAPSHOT'
+def spring_version = '3.2.3.RELEASE'
+
+
+def localMavenRepo = 'file://' + new File(System.getProperty('user.home'), 'Repositories/maven').absolutePath
 
 repositories {
+    mavenRepo url: localMavenRepo
     mavenCentral()
 }
 
 dependencies {
-    compile "org.springframework:spring-core"
+    compile "org.springframework:spring-core:$spring_version"
+    compile "org.springframework:spring-web:$spring_version"
+    compile "org.springframework:spring-webmvc:$spring_version"
+    testCompile 'junit:junit:4.11'
+    testCompile "org.springframework:spring-test:$spring_version"
 }

@@ -7,4 +7,5 @@
 
   <context:component-scan base-package="me.guoyao"/>
 
+  <import resource="spring-mvc-context.xml"/>
 </beans>

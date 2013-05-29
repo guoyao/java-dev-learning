@@ -11,10 +11,7 @@
     <load-on-startup>1</load-on-startup>
     <init-param>
       <param-name>contextConfigLocation</param-name>
-      <param-value>
-        WEB-INF/spring-context.xml,
-        WEB-INF/spring-mvc-context.xml
-      </param-value>
+      <param-value>WEB-INF/spring-config/spring-context.xml</param-value>
     </init-param>
   </servlet>
 
