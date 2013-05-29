@@ -1,3 +1,11 @@
-task hello << {
-    println "hello gradle !"
+apply plugin: "java"
+
+defaultTasks 'build'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile "org.springframework:spring-core"
 }
