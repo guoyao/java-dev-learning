@@ -1,6 +1,6 @@
 defaultTasks 'clean', 'build'
 
-apply plugin: 'java'
+apply plugin: 'jetty'
 apply plugin: 'eclipse'
 apply plugin: 'maven'
 
@@ -17,7 +17,6 @@ repositories {
 }
 
 dependencies {
-    compile "org.apache.httpcomponents:httpclient:4.0.2"
     compile "org.springframework:spring-core:$spring_version"
     compile "org.springframework:spring-web:$spring_version"
     compile "org.springframework:spring-webmvc:$spring_version"
