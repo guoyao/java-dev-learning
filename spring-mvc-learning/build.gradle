@@ -9,8 +9,7 @@ version = '1.0.0-SNAPSHOT'
 description = 'This a project for learning spring mvc framework.'
 
 ext {
-    springVersion = "3.2.3.RELEASE"
-    emailNotification = "build@master.org"
+    springVersion = '3.2.3.RELEASE'
 }
 
 repositories {
@@ -22,6 +21,7 @@ repositories {
 }
 
 dependencies {
+    assert delegate == project.dependencies
     compile "org.springframework:spring-core:$springVersion"
     compile "org.springframework:spring-web:$springVersion"
     compile "org.springframework:spring-webmvc:$springVersion"
@@ -32,14 +32,16 @@ dependencies {
 uploadArchives {
     repositories {
         mavenDeployer {
-            repository(url: 'http://repository.guoyao.me/content/repositories/snapshots') {
-                authentication(userName: 'deployment', password: 'wuguoyao@1201')
+            repository(url:  'http://repository.guoyao.me/content/repositories/snapshots') {
+                authentication(userName: 'deployment', password: 'deployment@121201')
             }
         }
     }
 }
 
-sourceSets.all { ext.purpose = null }
+sourceSets.all {
+    ext.purpose = null
+}
 
 sourceSets {
     main {
@@ -54,7 +56,7 @@ sourceSets {
 }
 
 task printProperties << {
+    configurations.runtime.each { File f -> println f }
     println springVersion
-    println emailNotification
-    sourceSets.matching { it.purpose == "production" }.each { println it.name }
+    sourceSets.matching { it.purpose ==  'production'}.each { println it.name }
 }
