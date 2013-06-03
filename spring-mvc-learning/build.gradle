@@ -4,9 +4,11 @@ apply plugin: 'jetty'
 apply plugin: 'eclipse'
 apply plugin: 'maven'
 
-group = "me.guoyao.java"
+group = 'me.guoyao'
 version = '1.0.0-SNAPSHOT'
-def spring_version = '3.2.3.RELEASE'
+ext {
+    springVersion = '3.2.3.RELEASE'
+}
 
 repositories {
     mavenLocal()
@@ -17,17 +19,42 @@ repositories {
 }
 
 dependencies {
-    compile "org.springframework:spring-core:$spring_version"
-    compile "org.springframework:spring-web:$spring_version"
-    compile "org.springframework:spring-webmvc:$spring_version"
+    assert delegate == project.dependencies
+    compile "org.springframework:spring-core:$springVersion"
+    compile "org.springframework:spring-web:$springVersion"
+    compile "org.springframework:spring-webmvc:$springVersion"
     testCompile 'junit:junit:4.11'
-    testCompile "org.springframework:spring-test:$spring_version"
+    testCompile "org.springframework:spring-test:$springVersion"
 }
 
 uploadArchives {
     repositories {
         mavenDeployer {
-            repository(url:  'http://repository.guoyao.me/content/repositories/snapshots')
+            repository(url:  'http://repository.guoyao.me/content/repositories/snapshots') {
+                authentication(userName: 'deployment', password: 'deployment@121201')
+            }
         }
     }
+}
+
+sourceSets.all {
+    ext.purpose = null
+}
+
+sourceSets {
+    main {
+        purpose = "production"
+    }
+    test {
+        purpose = "test"
+    }
+    plugin {
+        purpose = "production"
+    }
+}
+
+task printProperties << {
+    configurations.runtime.each { File f -> println f }
+    println springVersion
+    sourceSets.matching { it.purpose ==  'production'}.each { println it.name }
 }
