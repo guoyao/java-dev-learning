@@ -10,6 +10,7 @@ description = 'This a project for learning spring mvc framework.'
 
 ext {
     springVersion = '3.2.3.RELEASE'
+    classesDir = new File('build/classes')
 }
 
 repositories {
@@ -33,7 +34,7 @@ uploadArchives {
     repositories {
         mavenDeployer {
             repository(url:  'http://repository.guoyao.me/content/repositories/snapshots') {
-                authentication(userName: 'deployment', password: 'deployment@121201')
+                authentication(userName: 'deployment', password: nexusDeploymentPassword)
             }
         }
     }
@@ -59,4 +60,77 @@ task printProperties << {
     configurations.runtime.each { File f -> println f }
     println springVersion
     sourceSets.matching { it.purpose ==  'production'}.each { println it.name }
+    if(hasProperty('commandLineProjectProp'))
+    {
+        println commandLineProjectProp
+    }
+    println gradlePropertiesProp
+    println systemProjectProp
+    println envProjectProp
+    println System.properties['system']
+    println tasks.resources.name
+}
+
+task resources << {
+    classesDir.mkdirs()
+}
+
+task compile(dependsOn: 'resources') << {
+    if(classesDir.isDirectory()) {
+        println 'The class directory exists. I can operate.'
+    }
+}
+
+//println tasks.getByPath('compile').path
+//println tasks.getByPath(':compile').path
+//println tasks.getByName('compile').path
+
+task taskX(dependsOn: ':sub-project:taskY') << {
+    println 'taskX'
+}
+
+taskX.dependsOn {
+    tasks.findAll { task -> task.name.startsWith('lib') }
+}
+
+task lib1 << {
+    println 'lib1'
+}
+
+task lib2 << {
+    println 'lib2'
+}
+
+lib1.mustRunAfter lib2
+
+task lib2(overwrite: true) << {
+    println "lib2 overwrite"
+}
+
+lib2.onlyIf { !project.hasProperty('skipLib2') }
+
+lib1.doFirst {
+    throw new StopExecutionException()
+}
+
+lib2.enabled = false
+
+task hello {
+    ext {
+        inputString = 'input'
+        outputString = 'output'
+    }
+    inputs.file inputString
+    outputs.file outputString
+    doLast {
+        println "$inputString - $outputString"
+    }
+}
+
+tasks.addRule("Pattern: ping<ID>") { String taskName ->
+    if (taskName.startsWith("ping")) {
+        task(taskName) << {
+            println "Pinging: " + (taskName - 'ping')
+        }
+    }
 }
