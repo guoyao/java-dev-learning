@@ -270,3 +270,210 @@ task copyTask(type: Copy) {
     from 'src/main/webapp'
     into 'build/explodedWar'
 }
+
+task copyTaskWithPatterns(type: Copy) {
+    from 'src/main/webapp'
+    into 'build/explodedWar'
+    include '**/*.html'
+    include '**/*.jsp'
+    exclude { details -> details.file.name.endsWith('.html') && details.file.text.contains('staging') }
+}
+
+task anotherCopyTask(type: Copy) {
+    // Copy everything under src/main/webapp
+    from 'src/main/webapp'
+    // Copy a single file
+    from 'src/staging/index.html'
+    // Copy the output of a task
+    from copyTask
+    // Copy the output of a task using Task outputs explicitly.
+    from copyTaskWithPatterns.outputs
+    // Copy the contents of a Zip file
+    from zipTree('src/main/assets.zip')
+    // Determine the destination directory later
+    into { getDestDir() }
+}
+
+task copyMethod << {
+    copy {
+        from 'src/main/webapp'
+        into 'build/explodedWar'
+        include '**/*.html'
+        include '**/*.jsp'
+    }
+}
+
+task rename(type: Copy) {
+    from 'src/main/webapp'
+    into 'build/explodedWar'
+    // Use a closure to map the file name
+    rename { String fileName ->
+        fileName.replace('-staging-', '')
+    }
+    // Use a regular expression to map the file name
+    rename '(.+)-staging-(.+)', '$1$2'
+    rename(/(.+)-staging-(.+)/, '$1$2')
+}
+
+import org.apache.tools.ant.filters.FixCrLfFilter
+import org.apache.tools.ant.filters.ReplaceTokens
+
+task filter(type: Copy) {
+    from 'src/main/webapp'
+    into 'build/explodedWar'
+    // Substitute property references in files
+    expand(copyright: '2009', version: '2.3.1')
+    expand(project.properties)
+    // Use some of the filters provided by Ant
+    filter(FixCrLfFilter)
+    filter(ReplaceTokens, tokens: [copyright: '2009', version: '2.3.1'])
+    // Use a closure to filter each line
+    filter { String line ->
+        "[$line]"
+    }
+}
+
+task nestedSpecs(type: Copy) {
+    into 'build/explodedWar'
+    exclude '**/*staging*'
+    from('src/dist') {
+        include '**/*.html'
+    }
+    into('libs') {
+        from configurations.runtime
+    }
+}
+
+task libs(type: Sync) {
+    from configurations.runtime
+    into "$buildDir/libs"
+}
+
+task zip(type: Zip) {
+    from 'src/dist'
+    into('libs') {
+        from configurations.runtime
+    }
+}
+
+task zipSrc(type: Zip) {
+    from 'src/main/java'
+    classifier = 'src'
+}
+
+task myZip(type: Zip) {
+    from 'somedir'
+}
+println myZip.archiveName
+println relativePath(myZip.destinationDir)
+println relativePath(myZip.archivePath)
+
+task myZip2(type: Zip) {
+    from 'somedir'
+    baseName = 'customName'
+}
+println myZip2.archiveName
+
+archivesBaseName = 'gradle'
+task myZip3(type: Zip) {
+    from 'somedir'
+    appendix = 'wrapper'
+    classifier = 'src'
+}
+println myZip3.archiveName
+
+// -------------------------- use ant in gradle ----------------------
+task antHello << {
+    String greeting = 'hello from Ant'
+    ant.echo(message: greeting)
+}
+
+task antZip << {
+    ant.zip(destfile: "$buildDir/archive.zip") {
+        fileset(dir: 'src') {
+            include(name: '**/*.xml')
+            exclude(name: '**/*.java')
+        }
+    }
+}
+
+task antList << {
+    def path = ant.path {
+        fileset(dir: 'src', includes: '**/*.java')
+    }
+    path.list().each {
+        println it
+    }
+}
+
+task antCheck << {
+    ant.taskdef(resource: 'checkstyletask.properties') {
+        classpath {
+            fileset(dir: 'libs', includes: '*.jar')
+        }
+    }
+    ant.checkstyle(config: 'checkstyle.xml') {
+        fileset(dir: 'src')
+    }
+}
+
+ant.importBuild 'build.xml'
+ant.buildDir = buildDir
+
+task antIntro(dependsOn: antHello2) << {
+    println 'Hello, from Gradle'
+}
+
+antHello2 << {
+    println 'Hello, from Gradle'
+}
+
+ant.path(id: 'classpath', location: 'libs')
+ant.references.classpath = ant.path(location: 'libs')
+ant.references['classpath'] = ant.path(location: 'libs')
+
+println ant.references.antPath
+println ant.references['antPath']
+
+// ------------------------ log in gradle ---------------------------------
+logger.quiet('An info log message which is always logged.')
+logger.error('An error log message.')
+logger.warn('A warning log message.')
+logger.lifecycle('A lifecycle info log message.')
+logger.info('An info log message.')
+logger.debug('A debug log message.')
+logger.trace('A trace log message.')
+
+// ----------------------------- plugin in gradle --------------------------
+task show << {
+    println relativePath(compileJava.destinationDir)
+    println relativePath(processResources.destinationDir)
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/java'
+        }
+        resources {
+            srcDir 'src/resources'
+        }
+    }
+}
+
+// Various ways to access the main source set
+println sourceSets.main.output.classesDir
+println sourceSets['main'].output.classesDir
+sourceSets {
+    println main.output.classesDir
+}
+sourceSets {
+    main {
+        println output.classesDir
+    }
+}
+
+// Iterate over the source sets
+sourceSets.all {
+    println name
+}
