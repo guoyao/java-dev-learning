@@ -1,0 +1,592 @@
+defaultTasks 'clean', 'build'
+
+apply plugin: 'jetty'
+apply plugin: 'eclipse'
+apply plugin: 'maven'
+
+group = 'me.guoyao'
+version = '1.0.0-SNAPSHOT'
+description = 'This a project for learning spring mvc framework.'
+
+ext {
+    springVersion = '3.2.3.RELEASE'
+    classesDir = new File('build/classes')
+}
+
+repositories {
+    mavenLocal()
+    maven {
+        url 'http://repository.guoyao.me/content/groups/all-in-one'
+    }
+    mavenCentral()
+}
+
+dependencies {
+    assert delegate == project.dependencies
+    compile "org.springframework:spring-core:$springVersion"
+    compile "org.springframework:spring-web:$springVersion"
+    compile "org.springframework:spring-webmvc:$springVersion"
+    testCompile 'junit:junit:4.11'
+    testCompile "org.springframework:spring-test:$springVersion"
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url:  'http://repository.guoyao.me/content/repositories/snapshots') {
+                authentication(userName: 'deployment', password: nexusDeploymentPassword)
+            }
+        }
+    }
+}
+
+sourceSets.all {
+    ext.purpose = null
+}
+
+sourceSets {
+    main {
+        purpose = "production"
+    }
+    test {
+        purpose = "test"
+    }
+    plugin {
+        purpose = "production"
+    }
+}
+
+task printProperties << {
+    configurations.runtime.each { File f -> println f }
+    println springVersion
+    sourceSets.matching { it.purpose ==  'production'}.each { println it.name }
+    if(hasProperty('commandLineProjectProp'))
+    {
+        println commandLineProjectProp
+    }
+    println gradlePropertiesProp
+    println systemProjectProp
+    println envProjectProp
+    println System.properties['system']
+    println tasks.resources.name
+}
+
+task resources << {
+    classesDir.mkdirs()
+}
+
+task compile(dependsOn: 'resources') << {
+    if(classesDir.isDirectory()) {
+        println 'The class directory exists. I can operate.'
+    }
+}
+
+//println tasks.getByPath('compile').path
+//println tasks.getByPath(':compile').path
+//println tasks.getByName('compile').path
+
+task taskX(dependsOn: ':sub-project:taskY') << {
+    println 'taskX'
+}
+
+taskX.dependsOn {
+    tasks.findAll { task -> task.name.startsWith('lib') }
+//    tasks.findAll { it.name.startsWith('lib') }
+}
+
+task lib1 << {
+    println 'lib1'
+}
+
+task lib2 << {
+    println 'lib2'
+}
+
+lib1.mustRunAfter lib2
+
+task lib2(overwrite: true) << {
+    println "lib2 overwrite"
+}
+
+lib2.onlyIf { !project.hasProperty('skipLib2') }
+
+lib1.doFirst {
+    throw new StopExecutionException()
+}
+
+lib2.enabled = false
+
+task hello {
+    ext {
+        inputString = 'input'
+        outputString = 'output'
+    }
+    inputs.file inputString
+    outputs.file outputString
+    doLast {
+        println "$inputString - $outputString"
+    }
+}
+
+tasks.addRule("Pattern: ping<ID>") { String taskName ->
+    if (taskName.startsWith("ping")) {
+        task(taskName) << {
+            println "Pinging: " + (taskName - 'ping')
+        }
+    }
+}
+
+task groupPing {
+    dependsOn pingServer1, pingServer2
+}
+
+task collection << {
+    FileCollection collection = files('src/file1.txt', new File('src/file2.txt'), ['src/file3.txt', 'src/file4.txt'])
+
+    collection.each { File file ->
+        println file.absolutePath
+    }
+
+    // Convert the collection to various types
+    Set set = collection.files
+    Set set2 = collection as Set
+    List list = collection as List
+    String path = collection.asPath
+    //File file = collection.singleFile
+    //File file2 = collection as File
+
+    // Add and subtract collections
+    collection += files('src/file5.txt')
+
+    collection.each { File file ->
+        println file.absolutePath
+    }
+
+    collection -= files('src/file3.txt')
+
+    collection.each { File file ->
+        println file.absolutePath
+    }
+}
+
+
+task list << {
+    File srcDir
+
+    // Create a file collection using a closure
+    collection = files { srcDir.listFiles() }
+
+    srcDir = file('src')
+    collection.each { println it.absolutePath }
+    println "Contents of $srcDir.name"
+    collection.collect { relativePath(it) }.sort().each { println it }
+
+    srcDir = file('src2')
+    collection.each { println it.absolutePath }
+    println "Contents of $srcDir.name"
+    collection.collect { relativePath(it) }.sort().each { println it }
+}
+
+task fileTree << {
+    // Create a file tree with a base directory
+    FileTree tree = fileTree(dir: 'src/main')
+
+    // Add include and exclude patterns to the tree
+    tree.include '**/*.java'
+    tree.exclude '**/Abstract*'
+
+    // Create a tree using path
+    tree = fileTree('src').include('**/*.java')
+
+    // Create a tree using closure
+    tree = fileTree('src') {
+        include '**/*.java'
+    }
+
+    // Create a tree using a map
+    tree = fileTree(dir: 'src', include: '**/*.java')
+    tree = fileTree(dir: 'src', includes: ['**/*.java', '**/*.xml'])
+    tree = fileTree(dir: 'src', include: '**/*.java', exclude: '**/*test*/**')
+
+    // Iterate over the contents of a tree
+    tree.each { File file ->
+        println file
+    }
+
+    // Filter a tree
+    FileTree filtered = tree.matching {
+        include 'org/gradle/api/**'
+    }
+
+    // Add trees together
+    FileTree sum = tree + fileTree(dir: 'src/test')
+
+    // Visit the elements of the tree
+    tree.visit { element ->
+        println "$element.relativePath => $element.file"
+    }
+}
+
+// Use a File object to specify the source directory
+compile {
+    ext.source = file('src/main/java')
+}
+
+// Use a String path to specify the source directory
+compile {
+    ext.source = 'src/main/java'
+}
+
+// Use a collection to specify multiple source directories
+compile {
+    ext.source = ['src/main/java', '../shared/java']
+}
+
+// Use a FileCollection (or FileTree in this case) to specify the source files
+compile {
+    ext.source = fileTree(dir: 'src/main/java').matching { include 'org/gradle/api/**' }
+}
+
+// Using a closure to specify the source files.
+compile {
+    ext.source = {
+        // Use the contents of each zip file in the src dir
+        file('src').listFiles().findAll { it.name.endsWith('.zip') }.collect { zipTree(it) }
+    }
+}
+
+compile {
+    // Add some source directories use String paths
+    source files('src/main/java', 'src/main/groovy')
+
+    // Add a source directory using a File object
+    source file('../shared/java')
+
+    // Add some source directories using a closure
+    source { file('src/test/').listFiles() }
+}
+
+task copyTask(type: Copy) {
+    from 'src/main/webapp'
+    into 'build/explodedWar'
+}
+
+task copyTaskWithPatterns(type: Copy) {
+    from 'src/main/webapp'
+    into 'build/explodedWar'
+    include '**/*.html'
+    include '**/*.jsp'
+    exclude { details -> details.file.name.endsWith('.html') && details.file.text.contains('staging') }
+}
+
+task anotherCopyTask(type: Copy) {
+    // Copy everything under src/main/webapp
+    from 'src/main/webapp'
+    // Copy a single file
+    from 'src/staging/index.html'
+    // Copy the output of a task
+    from copyTask
+    // Copy the output of a task using Task outputs explicitly.
+    from copyTaskWithPatterns.outputs
+    // Copy the contents of a Zip file
+    from zipTree('src/main/assets.zip')
+    // Determine the destination directory later
+    into { getDestDir() }
+}
+
+task copyMethod << {
+    copy {
+        from 'src/main/webapp'
+        into 'build/explodedWar'
+        include '**/*.html'
+        include '**/*.jsp'
+    }
+}
+
+task rename(type: Copy) {
+    from 'src/main/webapp'
+    into 'build/explodedWar'
+    // Use a closure to map the file name
+    rename { String fileName ->
+        fileName.replace('-staging-', '')
+    }
+    // Use a regular expression to map the file name
+    rename '(.+)-staging-(.+)', '$1$2'
+    rename(/(.+)-staging-(.+)/, '$1$2')
+}
+
+import org.apache.tools.ant.filters.FixCrLfFilter
+import org.apache.tools.ant.filters.ReplaceTokens
+
+task filter(type: Copy) {
+    from 'src/main/webapp'
+    into 'build/explodedWar'
+    // Substitute property references in files
+    expand(copyright: '2009', version: '2.3.1')
+    expand(project.properties)
+    // Use some of the filters provided by Ant
+    filter(FixCrLfFilter)
+    filter(ReplaceTokens, tokens: [copyright: '2009', version: '2.3.1'])
+    // Use a closure to filter each line
+    filter { String line ->
+        "[$line]"
+    }
+}
+
+task nestedSpecs(type: Copy) {
+    into 'build/explodedWar'
+    exclude '**/*staging*'
+    from('src/dist') {
+        include '**/*.html'
+    }
+    into('libs') {
+        from configurations.runtime
+    }
+}
+
+task libs(type: Sync) {
+    from configurations.runtime
+    into "$buildDir/libs"
+}
+
+task zip(type: Zip) {
+    from 'src/dist'
+    into('libs') {
+        from configurations.runtime
+    }
+}
+
+task zipSrc(type: Zip) {
+    from 'src/main/java'
+    classifier = 'src'
+}
+
+task myZip(type: Zip) {
+    from 'somedir'
+}
+println myZip.archiveName
+println relativePath(myZip.destinationDir)
+println relativePath(myZip.archivePath)
+
+task myZip2(type: Zip) {
+    from 'somedir'
+    baseName = 'customName'
+}
+println myZip2.archiveName
+
+archivesBaseName = 'gradle'
+task myZip3(type: Zip) {
+    from 'somedir'
+    appendix = 'wrapper'
+    classifier = 'src'
+}
+println myZip3.archiveName
+
+// -------------------------- use ant in gradle ----------------------
+task antHello << {
+    String greeting = 'hello from Ant'
+    ant.echo(message: greeting)
+}
+
+task antZip << {
+    ant.zip(destfile: "$buildDir/archive.zip") {
+        fileset(dir: 'src') {
+            include(name: '**/*.xml')
+            exclude(name: '**/*.java')
+        }
+    }
+}
+
+task antList << {
+    def path = ant.path {
+        fileset(dir: 'src', includes: '**/*.java')
+    }
+    path.list().each {
+        println it
+    }
+}
+
+task antCheck << {
+    ant.taskdef(resource: 'checkstyletask.properties') {
+        classpath {
+            fileset(dir: 'libs', includes: '*.jar')
+        }
+    }
+    ant.checkstyle(config: 'checkstyle.xml') {
+        fileset(dir: 'src')
+    }
+}
+
+ant.importBuild 'build.xml'
+ant.buildDir = buildDir
+
+task antIntro(dependsOn: antHello2) << {
+    println 'Hello, from Gradle'
+}
+
+antHello2 << {
+    println 'Hello, from Gradle'
+}
+
+ant.path(id: 'classpath', location: 'libs')
+ant.references.classpath = ant.path(location: 'libs')
+ant.references['classpath'] = ant.path(location: 'libs')
+
+println ant.references.antPath
+println ant.references['antPath']
+
+// ------------------------ log in gradle ---------------------------------
+logger.quiet('An info log message which is always logged.')
+logger.error('An error log message.')
+logger.warn('A warning log message.')
+logger.lifecycle('A lifecycle info log message.')
+logger.info('An info log message.')
+logger.debug('A debug log message.')
+logger.trace('A trace log message.')
+
+// ----------------------------- plugin in gradle --------------------------
+task show << {
+    println relativePath(compileJava.destinationDir)
+    println relativePath(processResources.destinationDir)
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/java'
+        }
+        resources {
+            srcDir 'src/resources'
+        }
+    }
+}
+
+// Various ways to access the main source set
+println sourceSets.main.output.classesDir
+println sourceSets['main'].output.classesDir
+sourceSets {
+    println main.output.classesDir
+}
+sourceSets {
+    main {
+        println output.classesDir
+    }
+}
+
+// Iterate over the source sets
+sourceSets.all {
+    println name
+}
+
+sourceSets {
+    intTest
+}
+dependencies {
+    intTestCompile 'junit:junit:4.11'
+    intTestRuntime 'org.ow2.asm:asm-all:4.0'
+}
+
+task intTestJar(type: Jar) {
+    from sourceSets.intTest.output
+}
+
+task intTestJavadoc(type: Javadoc) {
+    source sourceSets.intTest.allJava
+}
+
+task intTest(type: Test) {
+    testClassesDir = sourceSets.intTest.output.classesDir
+    classpath = sourceSets.intTest.runtimeClasspath
+}
+
+configurations {
+    compile {
+        description = 'compile classpath'
+        transitive = true
+    }
+    runtime {
+        extendsFrom compile
+    }
+}
+configurations.compile {
+    description = 'compile classpath'
+}
+
+dependencies {
+    compile project(':sub-project')
+}
+
+println 'This is executed during the configuration phase.'
+
+task configured {
+    println 'This is also executed during the configuration phase.'
+}
+
+ext.hasTests = true
+
+allprojects {
+    afterEvaluate { project ->
+        println "$project.name - $project.projectDir"
+        if (project.hasTests) {
+            println "Adding test task to $project"
+            project.task('testing') << {
+                println "Running tests for $project"
+            }
+        }
+    }
+}
+
+gradle.afterProject { project, projectState ->
+    if (projectState.failure) {
+        println "Evaluation of $project FAILED"
+    } else {
+        println "Evaluation of $project succeeded"
+    }
+}
+
+tasks.whenTaskAdded { task ->
+    task.ext.srcDir = 'src/main/java'
+}
+
+task a
+
+println "source dir is $a.srcDir"
+
+task ok
+
+task broken(dependsOn: ok) << {
+    throw new RuntimeException('broken')
+}
+
+gradle.taskGraph.beforeTask { Task task ->
+    println "executing $task ..."
+}
+
+gradle.taskGraph.afterTask { Task task, TaskState state ->
+    if (state.failure) {
+        println "FAILED"
+    }
+    else {
+        println "done"
+    }
+}
+
+Closure cl = { task -> println "I'm $task.project.name" }
+task hello2 << cl
+project(':sub-project') {
+    task hello2 << cl
+}
+
+allprojects {
+    task hello3 << { task -> println "I'm $task.project.name" }
+}
+
+subprojects {
+    hello3 << { println "- I depend on root" }
+}
+
+srcDirName = 'src/java'
+
+def getSrcDir(project) {
+    return project.file(srcDirName)
+}
