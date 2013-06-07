@@ -1,9 +1,0 @@
-<project>
-  <path refid="classpath"/>
-  <path id="antPath" location="libs"/>
-
-  <target name="antHello2" depends="hello">
-    <echo>Hello, from Ant</echo>
-    <echo>buildDir = ${buildDir}</echo>
-  </target>
-</project>
